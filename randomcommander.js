@@ -96,7 +96,7 @@ function larghezzaNome(testo, modello) {
 // Il nome deve restare intero: era il difetto della versione vecchia, dove
 // «Selesnya» diventava «Seles». Scelta la taglia, il corpo del nome scende
 // quanto basta perche' il piu' lungo ci stia nella cella.
-const CORPO_NOME_MIN = 0.6;
+const CORPO_NOME_MIN = 0.52;
 
 function adattaNomi(taglia) {
     const tasti = document.querySelectorAll('.griglia .name-button');
@@ -106,9 +106,10 @@ function adattaNomi(taglia) {
 
     const s = getComputedStyle(targa);
     const disponibile = tasti[0].getBoundingClientRect().width
-        - 10                                             // margine della targhetta
+        - 8                                              // margine della targhetta
         - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight)
-        - 6;                                             // i due bordi del pulsante
+        - 6                                              // i due bordi del pulsante
+        - 2;                                             // un filo di scorta
     if (disponibile <= 0) return;
 
     let piuLungo = 0;

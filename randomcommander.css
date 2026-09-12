@@ -201,8 +201,11 @@ body.capacitor {
     position: relative;
     z-index: 1;
     width: auto;
-    max-width: calc(100% - 10px);
-    padding: 2px 8px;
+    max-width: calc(100% - 8px);
+    /* Il fianco della targhetta in `em`: cosi' si stringe insieme al testo.
+       Con 8 px fissi, ai corpi piccoli il bordo si mangiava le lettere e
+       «NonGreen» diventava «NonGre...» pur essendo il testo abbastanza corto. */
+    padding: 2px 0.45em;
     border-radius: 7px;
     text-align: center;
     font-size: var(--corpo-nome, 0.95rem);
