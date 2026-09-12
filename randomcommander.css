@@ -122,7 +122,7 @@ body.capacitor {
 }
 
 .section {
-    padding: 10px 10px 14px;
+    padding: var(--spazio-sezione, 10px) 10px calc(var(--spazio-sezione, 10px) + 4px);
     border-bottom: 3px solid var(--bordo);
 }
 
@@ -136,12 +136,12 @@ body.capacitor {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin-bottom: 8px;
+    margin-bottom: var(--spazio-griglia, 8px);
 }
 
 .section h2 {
     margin: 0;
-    font-size: 1.15rem;
+    font-size: var(--corpo-sezione, 1.15rem);
     font-weight: 700;
     display: flex;
     align-items: baseline;
@@ -162,13 +162,13 @@ body.capacitor {
    sempre dentro perche' e' la colonna ad adattarsi, non il testo a sparire. */
 .griglia {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(var(--cella-min, 108px), 1fr));
+    gap: var(--spazio-griglia, 8px);
 }
 
 .name-button {
     position: relative;
-    height: 56px;
+    height: var(--altezza-tasto, 56px);
     padding: 0;
     border: 3px solid var(--bordo);
     border-radius: var(--raggio);
@@ -205,7 +205,7 @@ body.capacitor {
     padding: 2px 8px;
     border-radius: 7px;
     text-align: center;
-    font-size: 0.95rem;
+    font-size: var(--corpo-nome, 0.95rem);
     font-weight: 700;
     color: #fff;
     background: rgba(0, 0, 0, 0.66);

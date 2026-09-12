@@ -45,6 +45,98 @@ function allineaVersione() {
         .catch(() => {});
 }
 
+// Tutto su una schermata, senza scorrere.
+//
+// Il numero di mazzi lo decide l'utente e la scala del testo la decide il
+// telefono, quindi una taglia fissa non puo' funzionare: si provano taglie
+// sempre piu' strette e ci si ferma alla prima che ci sta. Se non basta
+// nemmeno la piu' stretta si lascia scorrere, che e' meglio di un'app
+// illeggibile.
+const TAGLIE = [
+    { tasto: 56, nome: 0.95, cella: 108, sezione: 1.15, spazio: 8, bordo: 10 },
+    { tasto: 52, nome: 0.9, cella: 98, sezione: 1.1, spazio: 7, bordo: 9 },
+    { tasto: 48, nome: 0.85, cella: 90, sezione: 1.05, spazio: 6, bordo: 8 },
+    { tasto: 44, nome: 0.8, cella: 84, sezione: 1, spazio: 5, bordo: 7 },
+    { tasto: 40, nome: 0.75, cella: 78, sezione: 0.95, spazio: 4, bordo: 6 },
+    { tasto: 36, nome: 0.7, cella: 72, sezione: 0.9, spazio: 3, bordo: 5 }
+];
+
+function applicaTaglia(t) {
+    const s = document.body.style;
+    s.setProperty('--altezza-tasto', t.tasto + 'px');
+    s.setProperty('--corpo-nome', t.nome + 'rem');
+    s.setProperty('--cella-min', t.cella + 'px');
+    s.setProperty('--corpo-sezione', t.sezione + 'rem');
+    s.setProperty('--spazio-griglia', t.spazio + 'px');
+    s.setProperty('--spazio-sezione', t.bordo + 'px');
+}
+
+// ⚠️ Misurare col canvas non va bene: disegna col corpo dichiarato, mentre a
+// schermo ci finisce anche la scala del testo di sistema. Si misura un pezzo di
+// testo vero, messo nella pagina.
+let metro = null;
+
+function larghezzaNome(testo, modello) {
+    if (!metro) {
+        metro = document.createElement('span');
+        metro.setAttribute('aria-hidden', 'true');
+        metro.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;' +
+            'left:-9999px;top:0;padding:0;margin:0;border:0;';
+        document.body.appendChild(metro);
+    }
+    const s = getComputedStyle(modello);
+    metro.style.fontFamily = s.fontFamily;
+    metro.style.fontSize = s.fontSize;
+    metro.style.fontWeight = s.fontWeight;
+    metro.style.letterSpacing = s.letterSpacing;
+    metro.textContent = testo;
+    return metro.getBoundingClientRect().width;
+}
+
+// Il nome deve restare intero: era il difetto della versione vecchia, dove
+// «Selesnya» diventava «Seles». Scelta la taglia, il corpo del nome scende
+// quanto basta perche' il piu' lungo ci stia nella cella.
+const CORPO_NOME_MIN = 0.6;
+
+function adattaNomi(taglia) {
+    const tasti = document.querySelectorAll('.griglia .name-button');
+    if (!tasti.length) return;
+    const targa = tasti[0].querySelector('.button-text');
+    if (!targa) return;
+
+    const s = getComputedStyle(targa);
+    const disponibile = tasti[0].getBoundingClientRect().width
+        - 10                                             // margine della targhetta
+        - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight)
+        - 6;                                             // i due bordi del pulsante
+    if (disponibile <= 0) return;
+
+    let piuLungo = 0;
+    document.querySelectorAll('.griglia .button-text').forEach(t => {
+        piuLungo = Math.max(piuLungo, larghezzaNome(t.textContent, t));
+    });
+    if (piuLungo <= disponibile) return;
+
+    const fattore = Math.max(CORPO_NOME_MIN / taglia.nome, disponibile / piuLungo);
+    document.body.style.setProperty('--corpo-nome', (taglia.nome * fattore).toFixed(3) + 'rem');
+}
+
+function adattaAllaSchermata() {
+    for (let i = 0; i < TAGLIE.length; i++) {
+        applicaTaglia(TAGLIE[i]);
+        adattaNomi(TAGLIE[i]);
+        // Leggere scrollHeight forza il ricalcolo, quindi la misura e' quella
+        // della taglia appena messa.
+        if (document.documentElement.scrollHeight <= window.innerHeight + 1) return;
+    }
+}
+
+// Una passata sola non basta: la prima cade prima che il carattere sia pronto e
+// prima che il telefono abbia applicato la sua scala del testo.
+function pianificaAdatta() {
+    [0, 200, 700, 1600].forEach(q => setTimeout(() => requestAnimationFrame(adattaAllaSchermata), q));
+}
+
 const COLORI = ['white', 'blue', 'black', 'red', 'green'];
 const ETICHETTE = {
     white: 'Bianco',
@@ -162,6 +254,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const rimettibile = modo === 'move' && sezioni.toUse.length === 0 && sezioni.used.length > 0;
         tastoRefill.classList.toggle('hidden', !rimettibile);
+
+        // Cambiato il contenuto, la taglia giusta puo' essere un'altra.
+        requestAnimationFrame(adattaAllaSchermata);
     }
 
     function tocca(voce, dove) {
@@ -313,4 +408,13 @@ document.addEventListener('DOMContentLoaded', () => {
     creaTastiColore();
     impostaModo('move');
     aggiornaColori();
+    pianificaAdatta();
+
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(pianificaAdatta);
+    }
+    window.addEventListener('resize', () => {
+        clearTimeout(window.__timerAdatta);
+        window.__timerAdatta = setTimeout(adattaAllaSchermata, 150);
+    });
 });
