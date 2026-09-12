@@ -1,0 +1,370 @@
+/* Random Commander — rifatto il 12 settembre 2026.
+ *
+ * Quello di prima metteva tutti i pulsanti alla stessa larghezza, calcolata sul
+ * nome piu' lungo, ma li lasciava restringere dal flex: i nomi finivano tagliati
+ * («Seles», «NonR», «Golga») e l'app diventava un indovinello. Qui i pulsanti
+ * stanno in una griglia a celle uguali, larghe quanto serve, e il nome non si
+ * taglia mai: se lo schermo e' stretto entrano meno colonne, non meno lettere.
+ */
+
+:root {
+    --fondo: #fff7e6;
+    --testo: #1a1a1a;
+    --bordo: #111;
+    --da-giocare: #b2ebf2;
+    --in-corso: #ffe0b2;
+    --giocati: #87d49d;
+    --colori: #ebc2f6;
+    --giallo: #ffe600;
+    --raggio: 10px;
+}
+
+* {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    box-sizing: border-box;
+}
+
+input {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+html,
+body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    margin: 0;
+    /* Sotto c'e' la barra dei modi, che e' fissa: il contenuto le lascia posto. */
+    padding: 0 0 calc(74px + env(safe-area-inset-bottom, 0px));
+    min-height: 100svh;
+    font-family: Calibri, 'Segoe UI', system-ui, sans-serif;
+    background-color: var(--fondo);
+    color: var(--testo);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Nel guscio Android le barre di sistema sono nascoste, ma il foro della
+   fotocamera resta: sul Galaxy A25 vale circa 34 px CSS. */
+body.capacitor {
+    padding-top: max(env(safe-area-inset-top, 0px), 34px);
+}
+
+/* ===== Testata ========================================================== */
+.app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #fff;
+    border-bottom: 3px solid var(--bordo);
+}
+
+.app-header h1 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+/* A fianco del titolo, non ad apice. */
+.build-tag {
+    font-size: 0.55em;
+    font-weight: 400;
+    opacity: 0.45;
+    margin-left: 7px;
+}
+
+.menu-button {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    font-size: 1.4rem;
+    line-height: 1;
+    background: #fff;
+    border: 2px solid var(--bordo);
+    border-radius: var(--raggio);
+}
+
+.menu-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    background: #fff;
+    border-bottom: 3px solid var(--bordo);
+}
+
+.menu-voce {
+    padding: 10px 12px;
+    font-size: 1rem;
+    text-align: left;
+    background: #f3f3f3;
+    border: 2px solid var(--bordo);
+    border-radius: var(--raggio);
+}
+
+/* ===== Sezioni ========================================================== */
+.container {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.section {
+    padding: 10px 10px 14px;
+    border-bottom: 3px solid var(--bordo);
+}
+
+#to-use-section { background-color: var(--da-giocare); }
+#using-section { background-color: var(--in-corso); }
+#used-section { background-color: var(--giocati); }
+#colors-section { background-color: var(--colori); }
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.section h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.conteggio {
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.14);
+}
+
+/* ===== La griglia dei mazzi =============================================
+   `auto-fill` con un minimo: sullo schermo del telefono entrano tre colonne,
+   su uno piu' largo di piu'. Le celle sono uguali fra loro, e il nome ci sta
+   sempre dentro perche' e' la colonna ad adattarsi, non il testo a sparire. */
+.griglia {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+    gap: 8px;
+}
+
+.name-button {
+    position: relative;
+    height: 56px;
+    padding: 0;
+    border: 3px solid var(--bordo);
+    border-radius: var(--raggio);
+    overflow: hidden;
+    background: #616161;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* Le bande di colore, nell'ordine in cui sono state scelte: e' l'ordine il
+   dato, non solo l'insieme. */
+.stripes {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    z-index: 0;
+}
+
+.stripe {
+    flex: 1;
+}
+
+/* La targhetta scura dietro al nome. Prima la scritta era grigio chiaro
+   direttamente sopra le bande, e sopra il bianco non si leggeva.
+   ⚠️ La targhetta e' larga quanto il NOME, non quanto il pulsante: a tutta
+   larghezza sembrava una fascia che tagliava in due il colore. */
+.button-text {
+    position: relative;
+    z-index: 1;
+    width: auto;
+    max-width: calc(100% - 10px);
+    padding: 2px 8px;
+    border-radius: 7px;
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.66);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.name-button:active {
+    transform: scale(0.97);
+}
+
+/* ===== Comandi ========================================================== */
+.control-button {
+    min-height: 40px;
+    padding: 6px 14px;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: inherit;
+    color: #000;
+    background: var(--giallo);
+    border: 3px solid var(--bordo);
+    border-radius: var(--raggio);
+    cursor: pointer;
+}
+
+.control-button.secondario {
+    background: #ddd;
+}
+
+#refill-button {
+    width: 100%;
+    margin-top: 10px;
+}
+
+/* ⚠️ `position: sticky` non tiene, qui: `overflow-x: hidden` su html/body crea
+   un contenitore di scorrimento e la barra resta in fondo al documento invece
+   che in fondo allo schermo. Fissa, e al corpo si lascia lo spazio sotto. */
+.barra-modi {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 5;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+    background: var(--fondo);
+    border-top: 3px solid var(--bordo);
+}
+
+.switch-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.mode-button {
+    min-height: 46px;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: inherit;
+    color: #fff;
+    background: #666;
+    border: 3px solid var(--bordo);
+    border-radius: var(--raggio);
+    cursor: pointer;
+}
+
+.mode-button.active {
+    background: #fff;
+    color: #000;
+}
+
+#name-input {
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 10px;
+    font-size: 1.05rem;
+    font-family: inherit;
+    border: 3px solid var(--bordo);
+    border-radius: var(--raggio);
+}
+
+/* ===== Scelta dei colori ================================================ */
+.color-pulsantes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.color-pulsante {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    border: 3px solid var(--bordo);
+    border-radius: var(--raggio);
+    cursor: pointer;
+}
+
+/* Il numerino dice a che punto e' quel colore nell'ordine: senza, scegliendo
+   tre colori non si sa piu' quale e' venuto prima. */
+.color-pulsante .ordine {
+    position: absolute;
+    right: -6px;
+    top: -6px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 4px;
+    border-radius: 11px;
+    background: #000;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 22px;
+    text-align: center;
+}
+
+.color-pulsante.selected {
+    outline: 4px solid #00c2ff;
+    outline-offset: 2px;
+}
+
+.anteprima-riga {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0;
+}
+
+.anteprima-etichetta {
+    font-size: 0.85rem;
+    font-weight: 700;
+    opacity: 0.7;
+}
+
+.name-button.anteprima {
+    flex: 1;
+    max-width: 200px;
+    cursor: default;
+}
+
+.riga-comandi {
+    display: flex;
+    gap: 8px;
+}
+
+.riga-comandi .control-button {
+    flex: 1;
+}
+
+.vuoto {
+    grid-column: 1 / -1;
+    padding: 10px 0;
+    text-align: center;
+    font-size: 0.95rem;
+    opacity: 0.6;
+}
+
+.hidden {
+    display: none !important;
+}

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Random Commander</title>
+    <!-- Niente <meta http-equiv="Cache-Control">: non serve a niente, ne' per la
+         CDN ne' per la cache del browser. Contro i dieci minuti di cache di
+         GitHub Pages agisce allineaVersione() in randomcommander.js. -->
+    <link rel="stylesheet" href="randomcommander.css?v=2">
+</head>
+<body>
+    <header class="app-header">
+        <h1>Random Commander<span id="build-tag" class="build-tag"></span></h1>
+        <button id="menu-button" class="menu-button" type="button" title="Menu">⋯</button>
+    </header>
+
+    <div id="menu-panel" class="menu-panel hidden">
+        <button class="menu-voce" data-travaso type="button">&#10515; Travaso dati</button>
+        <button id="menu-chiudi" class="menu-voce" type="button">Chiudi</button>
+    </div>
+
+    <main class="container">
+        <section class="section" id="to-use-section">
+            <div class="section-header">
+                <h2>Da giocare <span class="conteggio" id="conta-to-use">0</span></h2>
+                <button id="random-button" class="control-button" type="button">Sorteggia</button>
+            </div>
+            <div class="griglia" id="to-use"></div>
+            <button id="refill-button" class="control-button hidden" type="button">Rimetti tutti</button>
+        </section>
+
+        <section class="section" id="using-section">
+            <div class="section-header">
+                <h2>In corso <span class="conteggio" id="conta-using">0</span></h2>
+            </div>
+            <div class="griglia" id="using"></div>
+        </section>
+
+        <section class="section" id="used-section">
+            <div class="section-header">
+                <h2>Giocati <span class="conteggio" id="conta-used">0</span></h2>
+            </div>
+            <div class="griglia" id="used"></div>
+        </section>
+
+        <section class="section hidden" id="colors-section">
+            <div class="section-header">
+                <h2>Colori, nell'ordine che scegli</h2>
+            </div>
+            <div class="color-pulsantes" id="color-pulsantes"></div>
+            <div class="anteprima-riga">
+                <span class="anteprima-etichetta">Anteprima</span>
+                <div id="anteprima" class="name-button anteprima"></div>
+            </div>
+            <div class="riga-comandi">
+                <button id="enter-button" class="control-button" type="button">Aggiungi</button>
+                <button id="annulla-button" class="control-button secondario" type="button">Annulla</button>
+            </div>
+        </section>
+    </main>
+
+    <div class="barra-modi">
+        <input type="text" id="name-input" class="hidden" placeholder="Nome del mazzo" maxlength="40">
+        <div class="switch-container">
+            <button id="add-mode" class="mode-button" type="button">Nuovo</button>
+            <button id="move-mode" class="mode-button" type="button">Sposta</button>
+            <button id="delete-mode" class="mode-button" type="button">Elimina</button>
+        </div>
+    </div>
+
+    <script src="randomcommander.js?v=2"></script>
+    <script src="backup.js?v=2"></script>
+</body>
+</html>
