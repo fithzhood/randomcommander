@@ -54,7 +54,9 @@ function allineaVersione() {
 // il telefono ingrandisce il testo — quindi si provano le combinazioni e si
 // tiene quella che fa il nome piu' grande stando dentro lo schermo.
 const COLONNE_POSSIBILI = [3, 4];
-const ALTEZZE = [72, 66, 60, 56, 52, 48, 44, 40, 36];
+// Scalini fitti: con salti grossi restava un dito di spazio vuoto in fondo,
+// perche' il gradino successivo non ci stava e quello scelto avanzava.
+const ALTEZZE = [72, 68, 64, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38, 36];
 const CORPO_NOME_MAX = 1.25;   // rem
 const CORPO_NOME_MIN = 0.62;   // sotto non si scende: si cambia piuttosto colonne
 
