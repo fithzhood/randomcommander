@@ -162,7 +162,7 @@ body.capacitor {
    sempre dentro perche' e' la colonna ad adattarsi, non il testo a sparire. */
 .griglia {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(var(--cella-min, 108px), 1fr));
+    grid-template-columns: repeat(var(--colonne, 4), 1fr);
     gap: var(--spazio-griglia, 8px);
 }
 

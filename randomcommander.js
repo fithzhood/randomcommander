@@ -45,31 +45,18 @@ function allineaVersione() {
         .catch(() => {});
 }
 
-// Tutto su una schermata, senza scorrere.
+// Tutto su una schermata, senza scorrere, e con la scritta piu' grande che
+// quella schermata consente.
 //
-// Il numero di mazzi lo decide l'utente e la scala del testo la decide il
-// telefono, quindi una taglia fissa non puo' funzionare: si provano taglie
-// sempre piu' strette e ci si ferma alla prima che ci sta. Se non basta
-// nemmeno la piu' stretta si lascia scorrere, che e' meglio di un'app
-// illeggibile.
-const TAGLIE = [
-    { tasto: 56, nome: 0.95, cella: 108, sezione: 1.15, spazio: 8, bordo: 10 },
-    { tasto: 52, nome: 0.9, cella: 98, sezione: 1.1, spazio: 7, bordo: 9 },
-    { tasto: 48, nome: 0.85, cella: 90, sezione: 1.05, spazio: 6, bordo: 8 },
-    { tasto: 44, nome: 0.8, cella: 84, sezione: 1, spazio: 5, bordo: 7 },
-    { tasto: 40, nome: 0.75, cella: 78, sezione: 0.95, spazio: 4, bordo: 6 },
-    { tasto: 36, nome: 0.7, cella: 72, sezione: 0.9, spazio: 3, bordo: 5 }
-];
-
-function applicaTaglia(t) {
-    const s = document.body.style;
-    s.setProperty('--altezza-tasto', t.tasto + 'px');
-    s.setProperty('--corpo-nome', t.nome + 'rem');
-    s.setProperty('--cella-min', t.cella + 'px');
-    s.setProperty('--corpo-sezione', t.sezione + 'rem');
-    s.setProperty('--spazio-griglia', t.spazio + 'px');
-    s.setProperty('--spazio-sezione', t.bordo + 'px');
-}
+// Le due cose si tirano: meno colonne vuol dire celle piu' larghe e quindi nome
+// piu' grande, ma anche piu' righe, e le righe fanno crescere l'altezza. Non
+// c'e' una taglia giusta a priori — dipende da quanti mazzi ci sono e da quanto
+// il telefono ingrandisce il testo — quindi si provano le combinazioni e si
+// tiene quella che fa il nome piu' grande stando dentro lo schermo.
+const COLONNE_POSSIBILI = [3, 4];
+const ALTEZZE = [72, 66, 60, 56, 52, 48, 44, 40, 36];
+const CORPO_NOME_MAX = 1.25;   // rem
+const CORPO_NOME_MIN = 0.62;   // sotto non si scende: si cambia piuttosto colonne
 
 // ⚠️ Misurare col canvas non va bene: disegna col corpo dichiarato, mentre a
 // schermo ci finisce anche la scala del testo di sistema. Si misura un pezzo di
@@ -93,42 +80,85 @@ function larghezzaNome(testo, modello) {
     return metro.getBoundingClientRect().width;
 }
 
-// Il nome deve restare intero: era il difetto della versione vecchia, dove
-// «Selesnya» diventava «Seles». Scelta la taglia, il corpo del nome scende
-// quanto basta perche' il piu' lungo ci stia nella cella.
-const CORPO_NOME_MIN = 0.52;
+function applica(colonne, altezza, corpo) {
+    const s = document.body.style;
+    s.setProperty('--colonne', colonne);
+    s.setProperty('--altezza-tasto', altezza + 'px');
+    s.setProperty('--corpo-nome', corpo.toFixed(3) + 'rem');
+    // Spazi e titoli seguono l'altezza: se i pulsanti sono piccoli, stringere
+    // anche il resto e' quello che fa stare tutto.
+    const stretto = altezza <= 48;
+    s.setProperty('--spazio-griglia', (stretto ? 5 : 8) + 'px');
+    s.setProperty('--spazio-sezione', (stretto ? 7 : 10) + 'px');
+    s.setProperty('--corpo-sezione', (stretto ? 1 : 1.15) + 'rem');
+}
 
-function adattaNomi(taglia) {
-    const tasti = document.querySelectorAll('.griglia .name-button');
-    if (!tasti.length) return;
-    const targa = tasti[0].querySelector('.button-text');
-    if (!targa) return;
+// Il corpo piu' grande che fa entrare il nome piu' lungo nella cella, senza
+// andare a capo e senza puntini. Zero se non ce n'e' nessuno.
+function corpoCheEntra() {
+    const tasto = document.querySelector('.griglia .name-button');
+    const targa = tasto && tasto.querySelector('.button-text');
+    if (!tasto || !targa) return CORPO_NOME_MAX;
+
+    const nomi = Array.prototype.map.call(
+        document.querySelectorAll('.griglia .button-text'), t => t.textContent);
+    if (!nomi.length) return CORPO_NOME_MAX;
 
     const s = getComputedStyle(targa);
-    const disponibile = tasti[0].getBoundingClientRect().width
-        - 8                                              // margine della targhetta
-        - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight)
-        - 6                                              // i due bordi del pulsante
-        - 2;                                             // un filo di scorta
-    if (disponibile <= 0) return;
+    const corpoOra = parseFloat(s.fontSize);
+    // Il fianco della targhetta e' in em, quindi cresce col corpo: si misura in
+    // proporzione, non in pixel fissi.
+    const fianchi = (parseFloat(s.paddingLeft) + parseFloat(s.paddingRight)) / corpoOra;
+    const disponibile = tasto.getBoundingClientRect().width - 8 - 6 - 2;
+    if (disponibile <= 0) return 0;
 
-    let piuLungo = 0;
+    // Il metro misura SOLO il testo: i fianchi si aggiungono dopo, non si
+    // tolgono qui. Sottraendoli veniva fuori un corpo troppo grande e i nomi
+    // lunghi finivano coi puntini.
+    let piuLargo = 0;
     document.querySelectorAll('.griglia .button-text').forEach(t => {
-        piuLungo = Math.max(piuLungo, larghezzaNome(t.textContent, t));
+        piuLargo = Math.max(piuLargo, larghezzaNome(t.textContent, t));
     });
-    if (piuLungo <= disponibile) return;
+    if (piuLargo <= 0) return CORPO_NOME_MAX;
 
-    const fattore = Math.max(CORPO_NOME_MIN / taglia.nome, disponibile / piuLungo);
-    document.body.style.setProperty('--corpo-nome', (taglia.nome * fattore).toFixed(3) + 'rem');
+    // larghezza(corpo) = piuLargo * corpo / corpoOra + fianchi * corpo
+    const perUnita = piuLargo / corpoOra + fianchi;
+    const corpoPx = disponibile / perUnita;
+    const rem = corpoPx / parseFloat(getComputedStyle(document.documentElement).fontSize);
+    if (rem < CORPO_NOME_MIN) return 0;
+    return Math.min(CORPO_NOME_MAX, rem);
+}
+
+function ciSta() {
+    return document.documentElement.scrollHeight <= window.innerHeight + 1;
 }
 
 function adattaAllaSchermata() {
-    for (let i = 0; i < TAGLIE.length; i++) {
-        applicaTaglia(TAGLIE[i]);
-        adattaNomi(TAGLIE[i]);
-        // Leggere scrollHeight forza il ricalcolo, quindi la misura e' quella
-        // della taglia appena messa.
-        if (document.documentElement.scrollHeight <= window.innerHeight + 1) return;
+    let migliore = null;
+
+    COLONNE_POSSIBILI.forEach(colonne => {
+        for (let i = 0; i < ALTEZZE.length; i++) {
+            applica(colonne, ALTEZZE[i], CORPO_NOME_MAX);
+            const corpo = corpoCheEntra();
+            if (!corpo) break;               // con queste colonne il nome non ci sta
+            applica(colonne, ALTEZZE[i], corpo);
+            if (ciSta()) {
+                // Le altezze scendono, quindi questa e' la piu' alta che regge
+                // per questo numero di colonne: piu' in giu' non serve guardare.
+                if (!migliore || corpo > migliore.corpo + 0.01) {
+                    migliore = { colonne: colonne, altezza: ALTEZZE[i], corpo: corpo };
+                }
+                break;
+            }
+        }
+    });
+
+    if (migliore) {
+        applica(migliore.colonne, migliore.altezza, migliore.corpo);
+    } else {
+        // Non ci sta comunque: si prende il piu' stretto e si lascia scorrere,
+        // che e' meglio di un nome tagliato.
+        applica(4, ALTEZZE[ALTEZZE.length - 1], CORPO_NOME_MIN);
     }
 }
 
